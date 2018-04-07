@@ -1,85 +1,71 @@
 
 shinyServer(function(input, output) {
 
-  ucr_temp <- reactive({
-    ucr_temp <- master_crime[which(master_crime$location %in%
-                                     input$agency),]
-    ucr_temp <- ucr_temp[which(ucr_temp$year %in%
-                                   input$yearRange[1]:input$yearRange[2]),]
-    ucr_temp$location <- NULL
-    ucr_temp$violent <- ucr_temp$murder + ucr_temp$rape + ucr_temp$robbery +
-                        ucr_temp$simple_assault + ucr_temp$aggravated_assault
-    ucr_temp$property <- ucr_temp$burglary + ucr_temp$larceny +
-                         ucr_temp$motor_vehicle_theft
-    ucr_temp$all <- ucr_temp$violent + ucr_temp$property
-    ucr_temp$population <- as.numeric(ucr_temp$population)
-    ucr_temp$year <- as.numeric(ucr_temp$year)
-    ucr_temp <- data.frame(ucr_temp, stringsAsFactors = FALSE)
-                                    })
+  output$agencies <- renderUI({
+    selectInput("agency",
+                label = "Agency:",
+                selected = "Oakland Police Department",
+                choices = sort(unique(ucr$agency[ucr$state == input$state])))
+  })
 
 
   crime <- reactive({
-    crime <- tolower(input$crime)
-    crime <- gsub(" ", "_", crime)
+    crime <- crimes$real_names[crimes$shiny_names == input$crime]
+    if (!grepl("officer", crime, ignore.case = TRUE)) {
+      crime <- paste0(input$crime_type, crime)
+    }
+    crime
   })
 
-  rate_binary <- reactive({
-    rate_binary <- input$rate
+  observeEvent(input$crime, {
+    if (grepl("officer", input$crime, ignore.case = TRUE)) {
+      disable("crime_type")
+    } else {
+      enable("crime_type")
+    }
   })
 
-  graph_title <- reactive({
-    graph_title <- input$title
-  })
 
-  output$crimePlot <- renderPlot({
+  output$crimePlot <- renderDygraph({
 
-    ucr_temp <- ucr_temp()
     crime <- crime()
-    title <- graph_title()
-    rate_binary <- rate_binary()
 
-    ucr_temp$rate <- (ucr_temp[, grep(paste0("^", crime, "$"),
-                      names(ucr_temp))] / ucr_temp$population) * 100000
-    ucr_temp$rate <- round(ucr_temp$rate, 3)
+    ucr %>%
+      filter(state == input$state & agency == input$agency) %>%
+      select(year, crime) %>%
+      dygraph(main = paste0(input$crime, " in ", input$agency)) %>%
+      dyRangeSelector() %>%
+      dyAxis(name = "y", label = "# of Crimes")
 
-    plot <- ggplot(ucr_temp, aes_string(x = "year", y = crime)) +
-      geom_line() +
-      theme_fivethirtyeight() +
-      theme(axis.title = element_text()) + ylab('# of Incidents') +
-      xlab("Year") +
-      ggtitle(paste0(title)) +
-      scale_x_discrete(
-        limits = c(1960, 1970, 1980, 1990, 2000, 2010, 2015),
-        labels = c(1960, 1970, 1980, 1990, 2000, 2010, 2015))
+  })
 
-  if (rate_binary) {
-    plot <- ggplot(ucr_temp, aes_string(x = "year", y = "rate")) +
-      geom_line() +
-      theme_fivethirtyeight() +
-      theme(axis.title = element_text()) + ylab('# of Incidents per 100,000 Population') +
-              xlab("Year") +
-              ggtitle(paste0(title)) +
-              scale_x_discrete(
-                limits = c(1960, 1970, 1980, 1990, 2000, 2010, 2015),
-                labels = c(1960, 1970, 1980, 1990, 2000, 2010, 2015))
+  output$mytable1 <- function() {
+    starting_cols <- c("agency", "state", "ori", "year", "population")
+    crime <- crime()
+
+    ucr <- ucr %>%
+      select(starting_cols, crime, everything()) %>%
+      filter(state == input$state & agency == input$agency) %>%
+      arrange(desc(year))
+    crime_col <- which(names(ucr) %in% crime)
+    names(ucr) <- sapply(names(ucr), simple_cap)
+    names(ucr) <- stringr::str_replace_all(names(ucr), crime_names)
+    names(ucr) <- stringr::str_replace_all(names(ucr), col_names)
+    ucr %>%
+      knitr::kable("html") %>%
+      kable_styling(c("striped", "hover", "responsive")) %>%
+      column_spec(crime_col, bold = TRUE, background = "grey", color = "white")
+
   }
-    plot
 
-  })
-
-  output$mytable1 <- renderDataTable({
-    ucr_temp <- ucr_temp()
-    names(ucr_temp) <- gsub("_", " ", names(ucr_temp))
-    names(ucr_temp) <- sapply(names(ucr_temp), simpleCap)
-    ucr_temp <- ucr_temp[order(ucr_temp$Year, decreasing = TRUE),]
-    ucr_temp <- data.frame(ucr_temp)
-    ucr_temp
-  })
-
+  # Downloadable csv of selected dataset ----
   output$downloadData <- downloadHandler(
-    filename = function() {"UCRdatatool.csv" },
+    filename = function() {
+      paste0(input$agency, "_", input$state, ".csv")
+    },
     content = function(file) {
-      write_csv(ucr_temp(), file)
+      readr::write_csv(ucr %>%
+                         filter(state == input$state & agency == input$agency), file)
     }
   )
 

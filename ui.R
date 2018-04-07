@@ -1,5 +1,6 @@
 
   shinyUI(fluidPage(
+    useShinyjs(),
 
     # Application title
     titlePanel("UCR Data Tool"),
@@ -9,32 +10,30 @@
       sidebarPanel(
         HTML("Enter a police agency to see the
              crime over time"),
-        selectInput("agency",
-            label = "Agency Name:",
-            selected =
-            sample(unique(master_crime$location[master_crime$murder > 100]), 1),
-            choices = unique(master_crime$location),
-            multiple = TRUE),
+        selectInput("state",
+            label = "State:",
+            selected = "California",
+            choices = sort(unique(ucr$state))),
+        uiOutput("agencies"),
         selectInput("crime",
                   label = "Crime:",
                   selected = "Murder",
-                  choices = c("Murder", "Rape", "Robbery",
-                              "Simple Assault",
-                              "Aggravated Assault", "Burglary",
-                              "Motor Vehicle Theft", "Larceny",
-                              "Violent", "Property", "All"),
-                  multiple = FALSE),
-        checkboxInput("rate", label = "Rate per 100,000 Population", value = FALSE),
-      sliderInput("yearRange", label = h3("Year Range"), min = 1960,
-                  max = 2015, value = c(1960, 2015)),
-      textInput("title", label = "Graph Title", value = "Enter graph title"),
+                  choices = crimes$shiny_names),
+        checkboxGroupInput("crime_type", label = h3("Type of Crime"),
+                           choices = list("Actual"                 = "act_",
+                                          "Clearance"              = "clr_",
+                                          "Clearance under age 18" = "clr_18_",
+                                          "Unfounded"              = "unfound_"),
+                           selected = "act_"),
+      checkboxInput("rate", label = "Rate per 100,000 Population", value = FALSE),
       downloadButton('downloadData', 'Download Table')),
 
 
       # Show a plot of the crime!
       mainPanel(
-        plotOutput("crimePlot"),
-        dataTableOutput('mytable1')
+        dygraphOutput("crimePlot")
       )
-    )
+    ),
+
+    tableOutput('mytable1')
   ))
