@@ -100,9 +100,7 @@ shinyServer(function(input, output) {
                     dom = 't',
                     scrollX = TRUE,
                     rowReorder = TRUE,
-                    fixedColumns = list(leftColumns = 1)
-                  )
-                  ) %>%
+                    fixedColumns = list(leftColumns = 1))) %>%
       formatStyle(crime_cols, fontWeight = "bold", backgroundColor = "grey",
                   color = "white", textAlign = "right")# %>%
      # formatStyle(pretty_cols, textAlign = "right")

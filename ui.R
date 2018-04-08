@@ -27,7 +27,7 @@
         dygraphOutput("crimePlot", height = "550px")
       )
     ),
-      tableOutput('mytable1')
+    DTOutput('mytable1')
 
 
   ))
