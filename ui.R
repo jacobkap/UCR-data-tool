@@ -25,8 +25,10 @@
 
       # Show a plot of the crime!
       mainPanel(
-        dygraphOutput("crimePlot", height = "550px"),
-        tableOutput('mytable1')
+        dygraphOutput("crimePlot", height = "550px")
       )
-    )
+    ),
+      tableOutput('mytable1')
+
+
   ))
