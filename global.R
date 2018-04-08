@@ -26,4 +26,6 @@ col_names <- c("Act_"         = "Actual ",
                "Unfound_"     = "Unfounded",
                "_kill_by_fel" = " Killed by Accident",
                "_kill_by_acc" = " Killed by Felony",
-               "_assaulted"   = " Assaulted")
+               "_assaulted"   = " Assaulted",
+               "Ori"          = "ORI")
+

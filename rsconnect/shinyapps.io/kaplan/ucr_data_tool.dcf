@@ -1,0 +1,10 @@
+name: ucr_data_tool
+title: UCR Data Tool
+username:
+account: kaplan
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 317402
+bundleId: 1307635
+url: https://kaplan.shinyapps.io/ucr_data_tool/
+when: 1523125286.59248

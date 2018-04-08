@@ -2,7 +2,6 @@ library(asciiSetupReader)
 library(dplyr)
 setwd("C:/Users/user/Dropbox/R_project/ucrdatatool/data")
 load("UCR_offenses_known_yearly_1960_2016.rda")
-
 ucr <- UCR_offenses_known_yearly_1960_2016
 rm(UCR_offenses_known_yearly_1960_2016); gc()
 names(ucr) <- tolower(names(ucr))
@@ -14,10 +13,27 @@ names(ucr)[1] <- "state"
 ucr <- ucr[!is.na(ucr$state),]
 ucr <- ucr[ucr$months_reported == "december is the last month reported", ]
 
-crosswalk <- spss_ascii_reader("crosswalk.txt", "crosswalk.sps")
-crosswalk <- crosswalk[, c("ORIGINATING_AGENCY_IDENTIFIER_7_CHARACTERS_FROM_UCR_FILES",
-                           "AGENCY_NAME")]
-names(crosswalk) <- c("ori", "agency")
+crosswalk_names <- c("^ORIGINATING_AGENCY_IDENTIFIER_7_CHARACTERS_FROM_UCR_FILES$" = "ori",
+                     "^ORIGINATING_AGENCY_IDENTIFIER_7_CHARACTER$" = "ori",
+                     "^UCR_ORIGINATING_AGENCY_IDENTIFIER$"         = "ori",
+                     "^AGENCY_NAME$"                               = "agency",
+                     "^UCR_AGENCY_NAME$"                           = "agency"
+
+)
+
+crosswalk            <- spss_ascii_reader("crosswalk.txt", "crosswalk.sps")
+names(crosswalk)     <- str_replace_all(names(crosswalk), crosswalk_names)
+crosswalk2005        <- spss_ascii_reader("crosswalk2005.txt", "crosswalk2005.sps")
+names(crosswalk2005) <- str_replace_all(names(crosswalk2005), crosswalk_names)
+crosswalk2005        <- crosswalk2005[!crosswalk2005$ori %in% crosswalk$ori, ]
+crosswalk            <- bind_rows(crosswalk, crosswalk2005)
+crosswalk1996        <- spss_ascii_reader("crosswalk1996.txt", "crosswalk1996.sps")
+names(crosswalk1996) <- str_replace_all(names(crosswalk1996), crosswalk_names)
+crosswalk1996        <- crosswalk1996[!crosswalk1996$ori %in% crosswalk$ori, ]
+crosswalk            <- bind_rows(crosswalk, crosswalk1996)
+crosswalk            <- crosswalk[, c("ori", "agency")]
+crosswalk            <- crosswalk[!is.na(crosswalk$ori), ]
+crosswalk            <- crosswalk[crosswalk$ori != "Not in UCR",]
 
 ucr <- left_join(ucr, crosswalk)
 to_remove <- c("population_1", "county_1", "core_city_indication", "division",
@@ -27,9 +43,8 @@ to_remove <- c("population_1", "county_1", "core_city_indication", "division",
                "special_mailing_address", "mailing_address_line_1",
                "mailing_address_line_2",
                "mailing_address_line_3", "mailing_address_line_4", "zip_code")
-ucr <- ucr[, -which(names(ucr) %in% to_remove)]
-
-
+ucr <- ucr[, names(ucr)[!names(ucr) %in% to_remove]]
+ucr <- ucr[!is.na(ucr$agency),]
 ucr$state <- sapply(ucr$state, simple_cap)
 ucr$agency <- sapply(ucr$agency, simple_cap)
 setwd("C:/Users/user/Dropbox/R_project/ucrdatatool/shiny_data")
