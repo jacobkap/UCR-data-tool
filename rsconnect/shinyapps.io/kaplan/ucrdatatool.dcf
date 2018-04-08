@@ -4,6 +4,6 @@ account: kaplan
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 135979
-bundleId: 1308543
+bundleId: 1308852
 url: https://kaplan.shinyapps.io/ucrdatatool/
-when: 1523214105.79264
+when: 1523228788.6871

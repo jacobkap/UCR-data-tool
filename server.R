@@ -57,8 +57,8 @@ shinyServer(function(input, output) {
     ucr
   })
 
-  output$mytable1 <- function() {
-    starting_cols <- c("agency", "state", "ori", "year", "population")
+  output$mytable1 <- renderDataTable({
+    starting_cols <- c("year", "agency", "state", "ori", "population")
     pretty_cols <- names(ucr)[!names(ucr) %in% c("agency", "state",
                                             "ori", "year")]
     crime <- crime()
@@ -84,15 +84,30 @@ shinyServer(function(input, output) {
     names(ucr) <- stringr::str_replace_all(names(ucr), col_names)
 
 
-    ucr %>%
-      knitr::kable("html") %>%
-      kable_styling(c("striped", "hover", "responsive")) %>%
-      column_spec(crime_cols,
-                  bold = TRUE,
-                  background = "grey",
-                  color = "white")
+    # ucr %>%
+    #   knitr::kable("html") %>%
+    #   kable_styling(c("striped", "hover", "responsive")) %>%
+    #   column_spec(crime_cols,
+    #               bold = TRUE,
+    #               background = "grey",
+    #               color = "white")
+    DT::datatable(ucr, class = 'cell-border stripe', rownames = FALSE,
+                  extensions = c('Scroller', "FixedColumns", "RowReorder"),
+                  options = list(
+                    deferRender = TRUE,
+                    scrollY = 400,
+                    scroller = TRUE,
+                    dom = 't',
+                    scrollX = TRUE,
+                    rowReorder = TRUE,
+                    fixedColumns = list(leftColumns = 1)
+                  )
+                  ) %>%
+      formatStyle(crime_cols, fontWeight = "bold", backgroundColor = "grey",
+                  color = "white", textAlign = "right")# %>%
+     # formatStyle(pretty_cols, textAlign = "right")
 
-    }
+    })
 
   # Downloadable csv of selected dataset ----
   output$downloadData <- downloadHandler(
@@ -100,7 +115,7 @@ shinyServer(function(input, output) {
       paste0(input$agency, " ", input$state, ".csv")
     },
     content = function(file) {
-      starting_cols <- c("agency", "state", "ori", "year", "population")
+      starting_cols <- c("year", "agency", "state", "ori", "population")
       readr::write_csv(ucr %>%
                          select(starting_cols, crime(), everything()) %>%
                          filter(state == input$state & agency == input$agency), file)

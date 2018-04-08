@@ -3,8 +3,7 @@
     useShinyjs(),
     sidebarLayout(
       sidebarPanel(
-        HTML("Enter a police agency to see the
-             crime over time"),
+        HTML("Enter a police agency to see its crime over time"),
         selectInput("state",
             label = "State:",
             selected = "California",
