@@ -7,4 +7,6 @@ The crime data is from my aggregation of UCR data from 1960-2016 and is availabl
 
 My main website is [Crime by the Numbers](https://crimebythenumbers.com/). On this site I mostly talk about the technical issues dealing with crime data. There's also links to data I've made available on openICPSR and R packages I've written.  
 
-I'm interested in making crime data more accessible to researchers and the public. If you'd like to discuss data or like to work together please email me.
+I'm interested in making crime data more accessible to researchers and the public. If you'd like to discuss data or to work together please email me.
+
+The best way to report bugs or make feature requests is through GitHub [here](https://github.com/jacobkap/ucrdatatool/issues).

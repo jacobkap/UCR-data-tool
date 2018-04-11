@@ -90,11 +90,13 @@ shinyServer(function(input, output) {
     }
 
     if (input$rate) {
+
+      all_crime_cols <- which(names(ucr) %in% all_crime_cols)
       ucr <- ucr %>%
         mutate_at(all_crime_cols, funs(. / population * 100000)) %>%
         mutate_at(all_crime_cols, funs(round(., digits = 2)))
-    }
 
+    }
 
     crime_cols <- which(names(ucr) %in% crime)
     ucr[, pretty_cols] <- sapply(ucr[, pretty_cols],
@@ -103,6 +105,11 @@ shinyServer(function(input, output) {
     names(ucr) <- stringr::str_replace_all(names(ucr), col_names)
     names(ucr) <- sapply(names(ucr), simple_cap)
     names(ucr) <- gsub("^ori$", "ORI", names(ucr), ignore.case = TRUE)
+
+    if (input$rate) {
+      names(ucr)[all_crime_cols] <- paste0(names(ucr)[all_crime_cols],
+                                           " Rate")
+    }
 
 
     dt <- DT::datatable(ucr, class = 'cell-border stripe',
