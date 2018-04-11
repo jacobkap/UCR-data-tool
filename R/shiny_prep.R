@@ -1,5 +1,13 @@
 library(asciiSetupReader)
+library(stringr)
 library(dplyr)
+simple_cap <- function(x) {
+  x <- tolower(x)
+  s <- strsplit(x, " ")[[1]]
+  paste(toupper(substring(s, 1,1)), substring(s, 2),
+        sep = "", collapse = " ")
+}
+
 setwd("C:/Users/user/Dropbox/R_project/ucrdatatool/data")
 load("UCR_offenses_known_yearly_1960_2016.rda")
 ucr <- UCR_offenses_known_yearly_1960_2016
@@ -73,7 +81,7 @@ crime_names <- c("murder"                = "Murder",
                  "burg_no_force_entry"  = "Burglary - Nonforcible Entry",
                  "att_burglary"         = "Attempted",
                  "larceny_total"        = "Larceny Total",
-                 "mtr_vhc_theft_total"  = "Mtor Vehicle Theft",
+                 "mtr_vhc_theft_total"  = "Motor Vehicle Theft",
                  "auto_theft"           = "Auto Theft",
                  "truck_bus_theft"      = "Truck/Bus Theft",
                  "oth_vhc_theft"        = "Other Vehicle Theft",

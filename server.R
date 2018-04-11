@@ -36,8 +36,9 @@ shinyServer(function(input, output) {
     crime <- crime()
     graph_label <- "# of Crimes"
 
-    if (is.null(input$agency) || length(ucr$state[ucr$state == input$state &
-                                                 ucr$agency == input$agency]) == 0) {
+    if (is.null(input$agency) | length(ucr$state[ucr$state == input$state &
+                                                 ucr$agency == input$agency]) == 0 |
+        is.null(input$crime_type)) {
       dygraph(data.frame(year = 1960:2016, crime = rep(0, 57)))
     } else {
       ucr <- ucr %>%
@@ -49,74 +50,107 @@ shinyServer(function(input, output) {
           mutate_at(crime, funs(. / population * 100000))
       }
       ucr <- ucr %>%
-        select(year, crime) %>%
+        select(year, crime)
+      names(ucr) <- str_replace_all(names(ucr), crime_names)
+      names(ucr) <- str_replace_all(names(ucr), col_names)
+      ucr %>%
         dygraph(main = paste0(input$agency, ": ", input$crime)) %>%
         dyRangeSelector() %>%
-        dyAxis(name = "y", label = graph_label)
+        dyAxis(name = "y", label = graph_label) %>%
+        dyCrosshair(direction = "vertical")
     }
-    ucr
   })
 
   output$mytable1 <- renderDataTable({
     starting_cols <- c("year", "agency", "state", "ori", "population")
     pretty_cols <- names(ucr)[!names(ucr) %in% c("agency", "state",
-                                            "ori", "year")]
+                                                 "ori", "year")]
     crime <- crime()
 
-    if (is.null(input$agency) || length(ucr$state[ucr$state == input$state &
-                                                 ucr$agency == input$agency]) == 0) {
-      ucr2 <- data.frame(matrix(data = rep("", ncol(ucr)),
-                                ncol = ncol(ucr),
-                                nrow = 1))
-      names(ucr2) <- names(ucr)
-      ucr <- ucr2 %>%
-        select(starting_cols, crime, everything())
+    if (is.null(input$agency) |
+        length(ucr$state[ucr$state == input$state &
+                         ucr$agency == input$agency]) == 0) {
+      names_ucr <- names(ucr)
+      ucr <- suppressWarnings(data.frame(matrix(data = rep("",
+                                                           ncol(ucr)),
+                                                ncol = ncol(ucr),
+                                                nrow = 0)))
+      names(ucr) <- names_ucr
+    } else if (is.null(input$crime_type)) {
+
+      ucr <- ucr %>%
+        select(starting_cols, everything()) %>%
+        filter(state == input$state & agency == input$agency) %>%
+        arrange(desc(year))
     } else {
       ucr <- ucr %>%
         select(starting_cols, crime, everything()) %>%
         filter(state == input$state & agency == input$agency) %>%
         arrange(desc(year))
     }
+
+    if (input$rate) {
+      ucr <- ucr %>%
+        mutate_at(all_crime_cols, funs(. / population * 100000)) %>%
+        mutate_at(all_crime_cols, funs(round(., digits = 2)))
+    }
+
+
     crime_cols <- which(names(ucr) %in% crime)
-    ucr[, pretty_cols] <- sapply(ucr[, pretty_cols],  prettyNum, big.mark = ",")
-    names(ucr) <- sapply(names(ucr), simple_cap)
+    ucr[, pretty_cols] <- sapply(ucr[, pretty_cols],
+                                 prettyNum, big.mark = ",")
     names(ucr) <- stringr::str_replace_all(names(ucr), crime_names)
     names(ucr) <- stringr::str_replace_all(names(ucr), col_names)
+    names(ucr) <- sapply(names(ucr), simple_cap)
+    names(ucr) <- gsub("^ori$", "ORI", names(ucr), ignore.case = TRUE)
 
 
-    # ucr %>%
-    #   knitr::kable("html") %>%
-    #   kable_styling(c("striped", "hover", "responsive")) %>%
-    #   column_spec(crime_cols,
-    #               bold = TRUE,
-    #               background = "grey",
-    #               color = "white")
-    DT::datatable(ucr, class = 'cell-border stripe', rownames = FALSE,
-                  extensions = c('Scroller', "FixedColumns", "RowReorder"),
-                  options = list(
-                    deferRender = TRUE,
-                    scrollY = 400,
-                    scroller = TRUE,
-                    dom = 't',
-                    scrollX = TRUE,
-                    rowReorder = TRUE,
-                    fixedColumns = list(leftColumns = 1))) %>%
-      formatStyle(crime_cols, fontWeight = "bold", backgroundColor = "grey",
-                  color = "white", textAlign = "right")# %>%
-     # formatStyle(pretty_cols, textAlign = "right")
+    dt <- DT::datatable(ucr, class = 'cell-border stripe',
+                        rownames = FALSE,
+                        extensions = c('Scroller', "FixedColumns"),
+                        options = list(
+                          deferRender = TRUE,
+                          scrollY = 400,
+                          scroller = TRUE,
+                          dom = 't',
+                          ordering = FALSE,
+                          scrollX = TRUE,
+                          fixedColumns = list(leftColumns = 1)))
+    if (is.null(input$crime_type)) return(dt)
 
-    })
+      dt %>% DT::formatStyle(crime_cols,
+                                   fontWeight = "bold",
+                                   backgroundColor = "grey",
+                                   color = "white",
+                                   textAlign = "right")
+
+  })
 
   # Downloadable csv of selected dataset ----
   output$downloadData <- downloadHandler(
     filename = function() {
-      paste0(input$agency, " ", input$state, ".csv")
+      if (input$rate) {
+        type <- "rate"
+      } else type <- "count"
+      paste0(input$agency, " ", input$state, " ", type, ".csv")
     },
     content = function(file) {
       starting_cols <- c("year", "agency", "state", "ori", "population")
-      readr::write_csv(ucr %>%
-                         select(starting_cols, crime(), everything()) %>%
-                         filter(state == input$state & agency == input$agency), file)
+      if (!is.null(input$crime_type)) {
+        ucr <- ucr %>%
+          select(starting_cols, crime(), everything())
+      }
+      ucr <- ucr %>% filter(state == input$state & agency == input$agency)
+
+      if (input$rate) {
+        ucr <- ucr %>%
+          mutate_at(all_crime_cols, funs(. / population * 100000)) %>%
+          mutate_at(all_crime_cols, funs(round(., digits = 2)))
+        type <- "rate"
+        all_crime_cols <- which(names(ucr) %in% all_crime_cols)
+        names(ucr)[all_crime_cols] <- paste0(names(ucr)[all_crime_cols], "_rate")
+      }
+      readr::write_csv(ucr, file)
     }
   )
 

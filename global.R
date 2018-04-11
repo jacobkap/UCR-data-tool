@@ -20,13 +20,24 @@ simple_cap <- function(x) {
         sep = "", collapse = " ")
 }
 
+all_crime_cols <- names(ucr)[grepl("act|clr|found|officer", names(ucr))]
 
-col_names <- c("Act_"         = "Actual ",
-               "Clr_"         = "Clearance ",
+col_names <- c("act_"         = "Actual ",
+               "clr_"         = "Clearance ",
                "18_"          = "under 18 ",
-               "Unfound_"     = "Unfounded ",
+               "unfound_"     = "Unfounded ",
                "_kill_by_fel" = " Killed by Accident",
                "_kill_by_acc" = " Killed by Felony",
                "_assaulted"   = " Assaulted",
-               "Ori"          = "ORI")
+               "ori"          = "ORI")
 
+dyCrosshair <- function(dygraph,
+                        direction = c("both", "horizontal", "vertical")) {
+  dyPlugin(
+    dygraph = dygraph,
+    name = "Crosshair",
+    path = system.file("plugins/crosshair.js",
+                       package = "dygraphs"),
+    options = list(direction = match.arg(direction))
+  )
+}
